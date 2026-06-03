@@ -103,31 +103,48 @@ public class DataSeeder implements CommandLineRunner {
 
     private void seedReports(Device device, int index, Instant now) {
         int scenario = index % 5;
+        Instant latestReportAt = null;
+        DeviceStatus latestStatus = null;
 
         switch (scenario) {
             case 0 -> {
                 // 1 recent report (5 min ago) → ONLINE, not stale
-                saveReport(device, now.minus(5, ChronoUnit.MINUTES), DeviceStatus.ONLINE, "All systems operational");
+                latestReportAt = now.minus(5, ChronoUnit.MINUTES);
+                latestStatus = DeviceStatus.ONLINE;
+                saveReport(device, latestReportAt, latestStatus, "All systems operational");
             }
             case 1 -> {
                 // 2 reports: recent (10 min) + older (40 min) → ONLINE, not stale
                 saveReport(device, now.minus(40, ChronoUnit.MINUTES), DeviceStatus.DEGRADED, "High latency detected");
-                saveReport(device, now.minus(10, ChronoUnit.MINUTES), DeviceStatus.ONLINE, "Performance restored");
+                latestReportAt = now.minus(10, ChronoUnit.MINUTES);
+                latestStatus = DeviceStatus.ONLINE;
+                saveReport(device, latestReportAt, latestStatus, "Performance restored");
             }
             case 2 -> {
                 // 3 reports: old (2h, 3h, 5h) → DEGRADED, stale
                 saveReport(device, now.minus(5, ChronoUnit.HOURS), DeviceStatus.ONLINE, "Initial startup");
                 saveReport(device, now.minus(3, ChronoUnit.HOURS), DeviceStatus.DEGRADED, "Packet loss detected");
-                saveReport(device, now.minus(2, ChronoUnit.HOURS), DeviceStatus.DEGRADED, "Intermittent connectivity");
+                latestReportAt = now.minus(2, ChronoUnit.HOURS);
+                latestStatus = DeviceStatus.DEGRADED;
+                saveReport(device, latestReportAt, latestStatus, "Intermittent connectivity");
             }
             case 3 -> {
                 // 1 report very old (24h) → OFFLINE, stale
-                saveReport(device, now.minus(24, ChronoUnit.HOURS), DeviceStatus.OFFLINE, "Connection timeout");
+                latestReportAt = now.minus(24, ChronoUnit.HOURS);
+                latestStatus = DeviceStatus.OFFLINE;
+                saveReport(device, latestReportAt, latestStatus, "Connection timeout");
             }
             case 4 -> {
                 // No reports → OFFLINE, stale (by default)
                 // nothing to save
             }
+        }
+
+        // Update denormalized columns on device
+        if (latestReportAt != null) {
+            device.setLastReportAt(latestReportAt);
+            device.setCurrentStatus(latestStatus);
+            deviceRepository.save(device);
         }
     }
 

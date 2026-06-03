@@ -24,9 +24,10 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -101,7 +102,7 @@ class DeviceControllerTest {
         );
 
         Page<DeviceListItemResponse> page = new PageImpl<>(List.of(item));
-        when(deviceService.listAllDevices(any(Pageable.class))).thenReturn(page);
+        when(deviceService.listAllDevices(anyInt(), anyInt(), anyString())).thenReturn(page);
 
         mockMvc.perform(get("/api/devices"))
                 .andExpect(status().isOk())

@@ -19,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -94,19 +93,14 @@ class DeviceServiceTest {
 
     @Test
     void listAllDevices_shouldReturnMappedList() {
-        StatusReport report = StatusReport.builder()
-                .id(1L)
-                .device(testDevice)
-                .reportedAt(Instant.now())
-                .status(DeviceStatus.ONLINE)
-                .build();
+        testDevice.setCurrentStatus(DeviceStatus.ONLINE);
+        testDevice.setLastReportAt(Instant.now());
 
-        Pageable pageable = PageRequest.of(0, 20);
-        when(deviceRepository.findAll(eq(pageable))).thenReturn(new PageImpl<>(List.of(testDevice)));
-        when(statusReportRepository.findTopByDeviceIdOrderByReportedAtDesc(1L))
-                .thenReturn(Optional.of(report));
+        when(deviceRepository.findAll(eq(PageRequest.of(0, 20, org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.ASC, "lastReportAt")))))
+                .thenReturn(new PageImpl<>(List.of(testDevice)));
 
-        var result = deviceService.listAllDevices(pageable);
+        var result = deviceService.listAllDevices(0, 20, "lastReportAt,asc");
 
         assertThat(result.getContent()).hasSize(1);
         DeviceListItemResponse item = result.getContent().getFirst();
@@ -116,12 +110,11 @@ class DeviceServiceTest {
 
     @Test
     void listAllDevices_shouldMarkAsStale_whenNoReport() {
-        Pageable pageable = PageRequest.of(0, 20);
-        when(deviceRepository.findAll(eq(pageable))).thenReturn(new PageImpl<>(List.of(testDevice)));
-        when(statusReportRepository.findTopByDeviceIdOrderByReportedAtDesc(1L))
-                .thenReturn(Optional.empty());
+        when(deviceRepository.findAll(eq(PageRequest.of(0, 20, org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.ASC, "lastReportAt")))))
+                .thenReturn(new PageImpl<>(List.of(testDevice)));
 
-        var result = deviceService.listAllDevices(pageable);
+        var result = deviceService.listAllDevices(0, 20, "lastReportAt,asc");
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().getFirst().stale()).isTrue();
@@ -130,19 +123,14 @@ class DeviceServiceTest {
 
     @Test
     void listAllDevices_shouldMarkAsStale_whenReportOlderThan15Min() {
-        StatusReport oldReport = StatusReport.builder()
-                .id(1L)
-                .device(testDevice)
-                .reportedAt(Instant.now().minus(Duration.ofMinutes(20)))
-                .status(DeviceStatus.ONLINE)
-                .build();
+        testDevice.setCurrentStatus(DeviceStatus.ONLINE);
+        testDevice.setLastReportAt(Instant.now().minus(Duration.ofMinutes(20)));
 
-        Pageable pageable = PageRequest.of(0, 20);
-        when(deviceRepository.findAll(eq(pageable))).thenReturn(new PageImpl<>(List.of(testDevice)));
-        when(statusReportRepository.findTopByDeviceIdOrderByReportedAtDesc(1L))
-                .thenReturn(Optional.of(oldReport));
+        when(deviceRepository.findAll(eq(PageRequest.of(0, 20, org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.ASC, "lastReportAt")))))
+                .thenReturn(new PageImpl<>(List.of(testDevice)));
 
-        var result = deviceService.listAllDevices(pageable);
+        var result = deviceService.listAllDevices(0, 20, "lastReportAt,asc");
 
         assertThat(result.getContent().getFirst().stale()).isTrue();
     }
@@ -155,6 +143,9 @@ class DeviceServiceTest {
                 .status(DeviceStatus.ONLINE)
                 .message("All good")
                 .build();
+
+        testDevice.setCurrentStatus(DeviceStatus.ONLINE);
+        testDevice.setLastReportAt(Instant.now());
 
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(testDevice));
         when(statusReportRepository.findTop20ByDeviceIdOrderByReportedAtDesc(1L))
@@ -190,6 +181,9 @@ class DeviceServiceTest {
                 .status(DeviceStatus.ONLINE)
                 .message("Old")
                 .build();
+
+        testDevice.setCurrentStatus(DeviceStatus.ONLINE);
+        testDevice.setLastReportAt(Instant.now().minus(Duration.ofMinutes(20)));
 
         when(deviceRepository.findById(1L)).thenReturn(Optional.of(testDevice));
         when(statusReportRepository.findTop20ByDeviceIdOrderByReportedAtDesc(1L))
