@@ -24,6 +24,8 @@ server:
 
 app:
   stale-threshold: 15m
+  seed-data:
+    enabled: true
 
 logging:
   level:
