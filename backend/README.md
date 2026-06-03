@@ -68,6 +68,22 @@ Flyway will automatically run the `V1__init.sql` migration on startup, creating 
 
 The API will be available for the frontend at **http://localhost:8080/api**.
 
+## Demo Data Seeder
+
+The backend includes a deterministic data seeder that runs automatically on startup when enabled. It inserts **50 devices** with varied types, locations, registration dates, and status reports so you can immediately test pagination, sorting and stale logic.
+
+### Enable / Disable
+
+Set in `application.yaml`:
+
+```yaml
+app:
+  seed-data:
+    enabled: true   # set to false to disable
+```
+
+The seeder is **idempotent** — it skips if any devices already exist in the database.
+
 ## API Documentation
 
 Interactive Swagger UI is available at **http://localhost:8080/swagger-ui.html** when the application is running.
@@ -96,9 +112,23 @@ All 26 tests run automatically with `./mvnw test` (Testcontainers requires Docke
 | Method | Endpoint                          | Request Body               | Response                  | Status |
 |--------|-----------------------------------|----------------------------|---------------------------|--------|
 | POST   | `/api/devices`                    | `DeviceRegistrationRequest`| `Device`                  | 201    |
-| GET    | `/api/devices`                    | —                          | `DeviceListItemResponse[]`| 200    |
+| GET    | `/api/devices`                    | Query: `page`, `size`, `sort` | `Page<DeviceListItemResponse>`| 200    |
 | GET    | `/api/devices/{id}`               | —                          | `DeviceDetailResponse`    | 200    |
 | POST   | `/api/devices/{id}/status-reports`| `StatusReportRequest`      | `StatusReportResponse`    | 201    |
+
+### Query Parameters
+
+**`GET /api/devices`**
+
+| Param | Default | Description |
+|-------|---------|-------------|
+| `page` | `0` | Page number (0-indexed) |
+| `size` | `20` | Page size |
+| `sort` | `lastReportAt,asc` | Sort field and direction (e.g., `name,asc`, `currentStatus,desc`) |
+
+**Sortable fields:** `name`, `deviceType`, `hostname`, `location`, `currentStatus`, `lastReportAt`, `stale`
+
+> **Note:** Sorting by `stale` maps to `lastReportAt` internally. Stale devices naturally surface to the top with `lastReportAt,asc` (the default), making it easy for admins to spot problematic devices.
 
 ### Error Responses
 
