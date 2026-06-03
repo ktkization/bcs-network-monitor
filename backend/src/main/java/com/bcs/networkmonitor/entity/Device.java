@@ -54,6 +54,13 @@ public class Device {
     @Column(name = "registered_at", nullable = false, updatable = false)
     private Instant registeredAt;
 
+    @Column(name = "last_report_at")
+    private Instant lastReportAt;
+
+    @Column(name = "current_status")
+    @Enumerated(EnumType.STRING)
+    private DeviceStatus currentStatus;
+
     @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("reportedAt DESC")
     private List<StatusReport> statusReports = new ArrayList<>();

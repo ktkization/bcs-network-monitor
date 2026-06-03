@@ -5,10 +5,9 @@ import com.bcs.networkmonitor.dto.DeviceListItemResponse;
 import com.bcs.networkmonitor.dto.DeviceRegistrationRequest;
 import com.bcs.networkmonitor.entity.Device;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 public interface DeviceService {
     Device registerDevice(DeviceRegistrationRequest request);
-    Page<DeviceListItemResponse> listAllDevices(Pageable pageable);
+    Page<DeviceListItemResponse> listAllDevices(int page, int size, String sort);
     DeviceDetailResponse getDeviceDetail(Long id);
 }

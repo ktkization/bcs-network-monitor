@@ -35,7 +35,7 @@ function mockPage(content: any[]) {
 
 describe("DeviceListPage", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it("shows loading state initially", () => {
@@ -227,6 +227,127 @@ describe("DeviceListPage", () => {
       expect(screen.getByText(/page 2 of 2/i)).toBeInTheDocument();
     });
 
-    expect(devicesApi.fetchDevices).toHaveBeenLastCalledWith({ page: 1, size: 20 });
+    expect(devicesApi.fetchDevices).toHaveBeenLastCalledWith({
+      page: 1,
+      size: 20,
+      sort: "lastReportAt,asc",
+    });
+  });
+
+  it("sorts by column when header is clicked", async () => {
+    vi.mocked(devicesApi.fetchDevices).mockResolvedValueOnce(mockPage([]) as any);
+    vi.mocked(devicesApi.fetchDevices).mockResolvedValueOnce(mockPage([]) as any);
+
+    render(<DeviceListPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/no devices registered yet/i)).toBeInTheDocument();
+    });
+
+    // First render calls with default sort
+    expect(devicesApi.fetchDevices).toHaveBeenCalledWith({
+      page: 0,
+      size: 20,
+      sort: "lastReportAt,asc",
+    });
+  });
+
+  it("toggles sort direction when clicking the same column", async () => {
+    const alphaDevice = {
+      id: 1,
+      uniqueId: "CPE-001",
+      name: "Alpha",
+      deviceType: "CPE",
+      hostname: "alpha.local",
+      location: "Building A",
+      currentStatus: "ONLINE",
+      lastReportTimestamp: new Date().toISOString(),
+      stale: false,
+    };
+
+    vi.mocked(devicesApi.fetchDevices).mockImplementation(() =>
+      Promise.resolve(mockPage([alphaDevice]) as any)
+    );
+
+    render(<DeviceListPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Alpha")).toBeInTheDocument();
+    });
+
+    let nameHeader = screen.getByText("Name").closest("th");
+    expect(nameHeader).toBeTruthy();
+
+    // Click Name header → sorts by name,asc
+    await userEvent.click(nameHeader!);
+
+    await waitFor(() => {
+      expect(devicesApi.fetchDevices).toHaveBeenLastCalledWith({
+        page: 0,
+        size: 20,
+        sort: "name,asc",
+      });
+    });
+
+    // Re-query after re-render, then click again → toggles to name,desc
+    nameHeader = screen.getByText("Name").closest("th");
+    await userEvent.click(nameHeader!);
+
+    await waitFor(() => {
+      expect(devicesApi.fetchDevices).toHaveBeenLastCalledWith({
+        page: 0,
+        size: 20,
+        sort: "name,desc",
+      });
+    });
+  });
+
+  it("resets to page 0 when changing sort", async () => {
+    const device = {
+      id: 1,
+      uniqueId: "CPE-001",
+      name: "Test CPE",
+      deviceType: "CPE",
+      hostname: "cpe-001.local",
+      location: "Building A",
+      currentStatus: "ONLINE",
+      lastReportTimestamp: new Date().toISOString(),
+      stale: false,
+    };
+
+    const pagedResponse = {
+      data: {
+        content: [device],
+        totalElements: 25,
+        totalPages: 2,
+        number: 1,
+        size: 20,
+        first: false,
+        last: true,
+        empty: false,
+      },
+    };
+
+    vi.mocked(devicesApi.fetchDevices).mockImplementation(() =>
+      Promise.resolve(pagedResponse as any)
+    );
+
+    render(<DeviceListPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/page 2 of 2/i)).toBeInTheDocument();
+    });
+
+    const typeHeader = screen.getByText("Type").closest("th");
+    expect(typeHeader).toBeTruthy();
+    await userEvent.click(typeHeader!);
+
+    await waitFor(() => {
+      expect(devicesApi.fetchDevices).toHaveBeenLastCalledWith({
+        page: 0,
+        size: 20,
+        sort: "deviceType,asc",
+      });
+    });
   });
 });

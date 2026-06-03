@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, AlertCircle, PlusCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Loader2,
+  AlertCircle,
+  PlusCircle,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+} from "lucide-react";
 import { fetchDevices } from "@/api/devices";
 import type { DeviceListItem, Page } from "@/types";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -19,20 +28,62 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const DEFAULT_PAGE_SIZE = 20;
 
+interface SortColumn {
+  key: string;
+  label: string;
+}
+
+const SORTABLE_COLUMNS: SortColumn[] = [
+  { key: "name", label: "Name" },
+  { key: "deviceType", label: "Type" },
+  { key: "hostname", label: "Hostname" },
+  { key: "location", label: "Location" },
+  { key: "currentStatus", label: "Status" },
+  { key: "lastReportAt", label: "Last Report" },
+  { key: "stale", label: "Stale" },
+];
+
 export default function DeviceListPage() {
   const [page, setPage] = useState<Page<DeviceListItem> | null>(null);
   const [pageNumber, setPageNumber] = useState(0);
+  const [sortField, setSortField] = useState("lastReportAt");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     setLoading(true);
-    fetchDevices({ page: pageNumber, size: DEFAULT_PAGE_SIZE })
+    fetchDevices({
+      page: pageNumber,
+      size: DEFAULT_PAGE_SIZE,
+      sort: `${sortField},${sortDirection}`,
+    })
       .then((res) => setPage(res.data))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [pageNumber]);
+  }, [pageNumber, sortField, sortDirection]);
+
+  const handleSort = (key: string) => {
+    if (sortField === key) {
+      setSortDirection((dir) => (dir === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(key);
+      setSortDirection("asc");
+    }
+    setPageNumber(0);
+  };
+
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortField !== columnKey) {
+      return <ArrowUpDown className="ml-1 h-3.5 w-3.5 text-muted-foreground/50" />;
+    }
+    return sortDirection === "asc" ? (
+      <ArrowUp className="ml-1 h-3.5 w-3.5" />
+    ) : (
+      <ArrowDown className="ml-1 h-3.5 w-3.5" />
+    );
+  };
 
   if (loading) {
     return (
@@ -94,13 +145,18 @@ export default function DeviceListPage() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Hostname</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Report</TableHead>
-                  <TableHead>Stale</TableHead>
+                  {SORTABLE_COLUMNS.map((col) => (
+                    <TableHead
+                      key={col.key}
+                      className="cursor-pointer select-none whitespace-nowrap"
+                      onClick={() => handleSort(col.key)}
+                    >
+                      <span className="inline-flex items-center">
+                        {col.label}
+                        <SortIcon columnKey={col.key} />
+                      </span>
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>

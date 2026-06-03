@@ -37,6 +37,12 @@ public class StatusReportServiceImpl implements StatusReportService {
                 .build();
 
         StatusReport saved = statusReportRepository.save(report);
+
+        // Update denormalized columns on device for fast reads and sorting
+        device.setLastReportAt(saved.getReportedAt());
+        device.setCurrentStatus(saved.getStatus());
+        deviceRepository.save(device);
+
         log.info("Status report submitted: deviceId={}, status={}", deviceId, request.status());
         log.debug("Status report saved: id={}", saved.getId());
         return saved;

@@ -15,7 +15,9 @@ import com.bcs.networkmonitor.repository.StatusReportRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,9 +56,25 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<DeviceListItemResponse> listAllDevices(Pageable pageable) {
+    public Page<DeviceListItemResponse> listAllDevices(int page, int size, String sort) {
+        Pageable pageable = buildPageable(page, size, sort);
         return deviceRepository.findAll(pageable)
                 .map(this::toListItem);
+    }
+
+    private Pageable buildPageable(int page, int size, String sort) {
+        String[] parts = sort.split(",");
+        String property = mapSortProperty(parts[0]);
+        Sort.Direction direction = parts.length > 1 && parts[1].equalsIgnoreCase("asc")
+                ? Sort.Direction.ASC : Sort.Direction.DESC;
+        return PageRequest.of(page, size, Sort.by(direction, property));
+    }
+
+    private String mapSortProperty(String property) {
+        return switch (property) {
+            case "stale" -> "lastReportAt";
+            default -> property;
+        };
     }
 
     @Override
@@ -75,36 +93,33 @@ public class DeviceServiceImpl implements DeviceService {
                 .map(this::toReportResponse)
                 .toList();
 
-        StatusReport lastReport = recentReports.isEmpty() ? null : recentReports.getFirst();
-        boolean stale = isStale(lastReport);
+        boolean stale = isStale(device.getLastReportAt());
         log.debug("Device stale check: id={}, reportCount={}, stale={}", id, recentReports.size(), stale);
 
-        return toDetailResponse(device, lastReport, stale, recentReportResponses);
+        return toDetailResponse(device, stale, recentReportResponses);
     }
 
     private DeviceListItemResponse toListItem(Device device) {
-        StatusReport lastReport = statusReportRepository
-                .findTopByDeviceIdOrderByReportedAtDesc(device.getId())
-                .orElse(null);
-
-        boolean stale = isStale(lastReport);
-        DeviceStatus currentStatus = lastReport != null ? lastReport.getStatus() : DeviceStatus.OFFLINE;
+        boolean stale = isStale(device.getLastReportAt());
+        DeviceStatus currentStatus = device.getCurrentStatus() != null
+                ? device.getCurrentStatus() : DeviceStatus.OFFLINE;
 
         return new DeviceListItemResponse(
                 device.getId(), device.getUniqueId(), device.getName(),
                 device.getDeviceType(), device.getHostname(), device.getLocation(),
-                currentStatus, lastReport != null ? lastReport.getReportedAt() : null, stale
+                currentStatus, device.getLastReportAt(), stale
         );
     }
 
-    private DeviceDetailResponse toDetailResponse(Device device, StatusReport lastReport, boolean stale, List<StatusReportResponse> recentReports) {
-        DeviceStatus currentStatus = lastReport != null ? lastReport.getStatus() : DeviceStatus.OFFLINE;
+    private DeviceDetailResponse toDetailResponse(Device device, boolean stale, List<StatusReportResponse> recentReports) {
+        DeviceStatus currentStatus = device.getCurrentStatus() != null
+                ? device.getCurrentStatus() : DeviceStatus.OFFLINE;
 
         return new DeviceDetailResponse(
                 device.getId(), device.getUniqueId(), device.getName(),
                 device.getDeviceType(), device.getHostname(), device.getIpAddress(),
                 device.getLocation(), device.getRegisteredAt(),
-                currentStatus, lastReport != null ? lastReport.getReportedAt() : null,
+                currentStatus, device.getLastReportAt(),
                 stale, recentReports
         );
     }
@@ -116,9 +131,9 @@ public class DeviceServiceImpl implements DeviceService {
         );
     }
 
-    private boolean isStale(StatusReport lastReport) {
-        if (lastReport == null) return true;
-        return Duration.between(lastReport.getReportedAt(), Instant.now())
+    private boolean isStale(Instant lastReportAt) {
+        if (lastReportAt == null) return true;
+        return Duration.between(lastReportAt, Instant.now())
                 .compareTo(appProperties.getStaleThreshold()) > 0;
     }
 }
