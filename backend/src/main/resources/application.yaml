@@ -1,3 +1,30 @@
 spring:
   application:
     name: networkmonitor
+  datasource:
+    url: jdbc:postgresql://localhost:5432/network_monitor?currentSchema=network_monitor
+    username: ${DB_USER:admin}
+    password: ${DB_PASS:secret}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: network_monitor
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    default-schema: network_monitor
+    schemas:
+      - network_monitor
+
+server:
+  port: 8080
+
+app:
+  stale-threshold: 1m
+
+logging:
+  level:
+    com.bcs.networkmonitor: DEBUG
