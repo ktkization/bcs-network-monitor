@@ -45,9 +45,12 @@ class DeviceControllerE2ETest {
         Long deviceId = deviceIdNum.longValue();
 
         // 2. List devices - should contain the new device with stale=true and OFFLINE
-        ResponseEntity<List> listResponse = restTemplate.getForEntity("/api/devices", List.class);
+        ResponseEntity<Map> listResponse = restTemplate.getForEntity("/api/devices", Map.class);
         assertThat(listResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        List<Map<String, Object>> devices = listResponse.getBody();
+        Map<String, Object> page = listResponse.getBody();
+        assertThat(page).isNotNull();
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> devices = (List<Map<String, Object>>) page.get("content");
         assertThat(devices).isNotEmpty();
 
         Map<String, Object> listedDevice = devices.stream()

@@ -22,6 +22,10 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -96,12 +100,15 @@ class DeviceControllerTest {
                 DeviceStatus.ONLINE, Instant.now(), false
         );
 
-        when(deviceService.listAllDevices()).thenReturn(List.of(item));
+        Page<DeviceListItemResponse> page = new PageImpl<>(List.of(item));
+        when(deviceService.listAllDevices(any(Pageable.class))).thenReturn(page);
 
         mockMvc.perform(get("/api/devices"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].uniqueId").value("CPE-001"))
-                .andExpect(jsonPath("$[0].stale").value(false));
+                .andExpect(jsonPath("$.content[0].uniqueId").value("CPE-001"))
+                .andExpect(jsonPath("$.content[0].stale").value(false))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
     }
 
     @Test

@@ -14,6 +14,8 @@ import com.bcs.networkmonitor.repository.DeviceRepository;
 import com.bcs.networkmonitor.repository.StatusReportRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,10 +54,9 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<DeviceListItemResponse> listAllDevices() {
-        return deviceRepository.findAll().stream()
-                .map(this::toListItem)
-                .toList();
+    public Page<DeviceListItemResponse> listAllDevices(Pageable pageable) {
+        return deviceRepository.findAll(pageable)
+                .map(this::toListItem);
     }
 
     @Override

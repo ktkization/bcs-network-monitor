@@ -4,11 +4,11 @@ import com.bcs.networkmonitor.dto.DeviceDetailResponse;
 import com.bcs.networkmonitor.dto.DeviceListItemResponse;
 import com.bcs.networkmonitor.dto.DeviceRegistrationRequest;
 import com.bcs.networkmonitor.entity.Device;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface DeviceService {
     Device registerDevice(DeviceRegistrationRequest request);
-    List<DeviceListItemResponse> listAllDevices();
+    Page<DeviceListItemResponse> listAllDevices(Pageable pageable);
     DeviceDetailResponse getDeviceDetail(Long id);
 }

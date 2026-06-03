@@ -17,6 +17,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -26,6 +29,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -97,29 +101,31 @@ class DeviceServiceTest {
                 .status(DeviceStatus.ONLINE)
                 .build();
 
-        when(deviceRepository.findAll()).thenReturn(List.of(testDevice));
+        Pageable pageable = PageRequest.of(0, 20);
+        when(deviceRepository.findAll(eq(pageable))).thenReturn(new PageImpl<>(List.of(testDevice)));
         when(statusReportRepository.findTopByDeviceIdOrderByReportedAtDesc(1L))
                 .thenReturn(Optional.of(report));
 
-        List<DeviceListItemResponse> result = deviceService.listAllDevices();
+        var result = deviceService.listAllDevices(pageable);
 
-        assertThat(result).hasSize(1);
-        DeviceListItemResponse item = result.getFirst();
+        assertThat(result.getContent()).hasSize(1);
+        DeviceListItemResponse item = result.getContent().getFirst();
         assertThat(item.currentStatus()).isEqualTo(DeviceStatus.ONLINE);
         assertThat(item.stale()).isFalse();
     }
 
     @Test
     void listAllDevices_shouldMarkAsStale_whenNoReport() {
-        when(deviceRepository.findAll()).thenReturn(List.of(testDevice));
+        Pageable pageable = PageRequest.of(0, 20);
+        when(deviceRepository.findAll(eq(pageable))).thenReturn(new PageImpl<>(List.of(testDevice)));
         when(statusReportRepository.findTopByDeviceIdOrderByReportedAtDesc(1L))
                 .thenReturn(Optional.empty());
 
-        List<DeviceListItemResponse> result = deviceService.listAllDevices();
+        var result = deviceService.listAllDevices(pageable);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.getFirst().stale()).isTrue();
-        assertThat(result.getFirst().currentStatus()).isEqualTo(DeviceStatus.OFFLINE);
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().getFirst().stale()).isTrue();
+        assertThat(result.getContent().getFirst().currentStatus()).isEqualTo(DeviceStatus.OFFLINE);
     }
 
     @Test
@@ -131,13 +137,14 @@ class DeviceServiceTest {
                 .status(DeviceStatus.ONLINE)
                 .build();
 
-        when(deviceRepository.findAll()).thenReturn(List.of(testDevice));
+        Pageable pageable = PageRequest.of(0, 20);
+        when(deviceRepository.findAll(eq(pageable))).thenReturn(new PageImpl<>(List.of(testDevice)));
         when(statusReportRepository.findTopByDeviceIdOrderByReportedAtDesc(1L))
                 .thenReturn(Optional.of(oldReport));
 
-        List<DeviceListItemResponse> result = deviceService.listAllDevices();
+        var result = deviceService.listAllDevices(pageable);
 
-        assertThat(result.getFirst().stale()).isTrue();
+        assertThat(result.getContent().getFirst().stale()).isTrue();
     }
 
     @Test
