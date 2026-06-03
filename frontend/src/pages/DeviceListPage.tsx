@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Loader2, AlertCircle, PlusCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Loader2, AlertCircle, PlusCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { fetchDevices } from "@/api/devices";
-import type { DeviceListItem } from "@/types";
+import type { DeviceListItem, Page } from "@/types";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StaleIndicator } from "@/components/StaleIndicator";
 import { getRelativeTime } from "@/utils/stale";
@@ -17,19 +17,22 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+const DEFAULT_PAGE_SIZE = 20;
+
 export default function DeviceListPage() {
-  const [devices, setDevices] = useState<DeviceListItem[]>([]);
+  const [page, setPage] = useState<Page<DeviceListItem> | null>(null);
+  const [pageNumber, setPageNumber] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     setLoading(true);
-    fetchDevices()
-      .then((res) => setDevices(res.data))
+    fetchDevices({ page: pageNumber, size: DEFAULT_PAGE_SIZE })
+      .then((res) => setPage(res.data))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [pageNumber]);
 
   if (loading) {
     return (
@@ -50,12 +53,19 @@ export default function DeviceListPage() {
     );
   }
 
+  const devices = page?.content ?? [];
+  const totalElements = page?.totalElements ?? 0;
+  const totalPages = page?.totalPages ?? 0;
+  const currentPage = page?.number ?? 0;
+  const isFirst = page?.first ?? true;
+  const isLast = page?.last ?? true;
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Network Devices</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {devices.length} device{devices.length !== 1 ? "s" : ""} monitored
+          {totalElements} device{totalElements !== 1 ? "s" : ""} monitored
         </p>
       </div>
 
@@ -118,6 +128,31 @@ export default function DeviceListPage() {
               </TableBody>
             </Table>
           </CardContent>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t px-6 py-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPageNumber((p) => p - 1)}
+                disabled={isFirst}
+              >
+                <ChevronLeft className="mr-1 h-4 w-4" />
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage + 1} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPageNumber((p) => p + 1)}
+                disabled={isLast}
+              >
+                Next
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </Card>
       )}
     </div>

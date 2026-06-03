@@ -28,13 +28,23 @@ describe("devices API", () => {
   });
 
   it("fetchDevices calls GET /devices", async () => {
-    const mockResponse = { data: [] };
+    const mockResponse = { data: { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20, first: true, last: true, empty: true } };
     vi.mocked(api.get).mockResolvedValueOnce(mockResponse);
 
     const result = await fetchDevices();
 
-    expect(api.get).toHaveBeenCalledWith("/devices");
-    expect(result.data).toEqual([]);
+    expect(api.get).toHaveBeenCalledWith("/devices", { params: undefined });
+    expect(result.data.content).toEqual([]);
+  });
+
+  it("fetchDevices calls GET /devices with pagination params", async () => {
+    const mockResponse = { data: { content: [], totalElements: 0, totalPages: 0, number: 1, size: 20, first: false, last: true, empty: true } };
+    vi.mocked(api.get).mockResolvedValueOnce(mockResponse);
+
+    const result = await fetchDevices({ page: 1, size: 20, sort: "name,asc" });
+
+    expect(api.get).toHaveBeenCalledWith("/devices", { params: { page: 1, size: 20, sort: "name,asc" } });
+    expect(result.data.number).toBe(1);
   });
 
   it("fetchDeviceDetail calls GET /devices/:id", async () => {

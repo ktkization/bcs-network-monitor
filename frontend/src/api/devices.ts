@@ -6,13 +6,20 @@ import type {
   DeviceDetail,
   StatusReportRequest,
   StatusReport,
+  Page,
 } from "@/types";
+
+export interface PaginationParams {
+  page?: number;
+  size?: number;
+  sort?: string;
+}
 
 export const registerDevice = (data: DeviceRegistrationRequest) =>
   api.post<Device>("/devices", data);
 
-export const fetchDevices = () =>
-  api.get<DeviceListItem[]>("/devices");
+export const fetchDevices = (params?: PaginationParams) =>
+  api.get<Page<DeviceListItem>>("/devices", { params });
 
 export const fetchDeviceDetail = (id: number) =>
   api.get<DeviceDetail>(`/devices/${id}`);
