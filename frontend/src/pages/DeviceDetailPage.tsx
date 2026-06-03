@@ -1,11 +1,12 @@
 import { useEffect, useState, type ChangeEvent } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { Loader2, AlertCircle, ClipboardList, PlusCircle } from "lucide-react";
 import { fetchDeviceDetail, submitStatusReport } from "@/api/devices";
 import type { DeviceDetail, StatusReport as StatusReportType } from "@/types";
 import { DeviceStatus } from "@/types";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StaleIndicator } from "@/components/StaleIndicator";
-import { formatDate } from "@/utils/stale";
+import { formatDate, getRelativeTime } from "@/utils/stale";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,7 +33,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+
+const statusAccent: Record<DeviceStatus, string> = {
+  ONLINE: "border-t-green-500",
+  OFFLINE: "border-t-red-500",
+  DEGRADED: "border-t-yellow-500",
+};
 
 export default function DeviceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -78,140 +84,188 @@ export default function DeviceDetailPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading device...</div>;
-  if (error) return <div className="p-8 text-center text-destructive">{error}</div>;
-  if (!device) return <div className="p-8 text-center text-muted-foreground">Device not found.</div>;
+  if (loading) {
+    return (
+      <div className="mx-auto flex max-w-5xl items-center justify-center py-24" role="status" aria-label="Loading device">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="flex items-center gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <p className="text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!device) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="flex items-center gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <p className="text-sm">Device not found.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto max-w-6xl p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="outline" onClick={() => navigate("/devices")}>
-          Back
-        </Button>
-        <h1 className="text-2xl font-bold">{device.name}</h1>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link to="/devices" className="hover:text-foreground transition-colors">
+          Devices
+        </Link>
+        <span>/</span>
+        <span className="font-medium text-foreground">{device.name}</span>
+      </nav>
 
-      <Card>
+      {/* Device Info Card */}
+      <Card className={`border-t-4 ${statusAccent[device.currentStatus]}`}>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Device Information</CardTitle>
+          <div>
+            <CardTitle className="text-2xl font-bold tracking-tight">{device.name}</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground font-mono">{device.uniqueId}</p>
+          </div>
           <div className="flex items-center gap-2">
             <StatusBadge status={device.currentStatus} />
             <StaleIndicator stale={device.stale} />
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-8 text-sm">
             <div>
-              <div className="text-muted-foreground">Unique ID</div>
-              <div className="font-mono">{device.uniqueId}</div>
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</div>
+              <div className="mt-1">{device.deviceType}</div>
             </div>
             <div>
-              <div className="text-muted-foreground">Type</div>
-              <div>{device.deviceType}</div>
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Hostname</div>
+              <div className="mt-1 font-mono">{device.hostname}</div>
             </div>
             <div>
-              <div className="text-muted-foreground">Hostname</div>
-              <div className="font-mono">{device.hostname}</div>
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">IP Address</div>
+              <div className="mt-1 font-mono">{device.ipAddress || "N/A"}</div>
             </div>
             <div>
-              <div className="text-muted-foreground">IP Address</div>
-              <div className="font-mono">{device.ipAddress || "N/A"}</div>
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Location</div>
+              <div className="mt-1">{device.location}</div>
             </div>
             <div>
-              <div className="text-muted-foreground">Location</div>
-              <div>{device.location}</div>
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Registered</div>
+              <div className="mt-1">{formatDate(device.registeredAt)}</div>
             </div>
             <div>
-              <div className="text-muted-foreground">Registered</div>
-              <div>{formatDate(device.registeredAt)}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Last Report</div>
-              <div>{formatDate(device.lastReportTimestamp)}</div>
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Last Report</div>
+              <div className="mt-1">{getRelativeTime(device.lastReportTimestamp)}</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Recent Status Reports</h2>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger render={<Button />}>
-            Submit Status Report
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Submit Status Report</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div className="space-y-2">
-                <Label>Status *</Label>
-                <Select
-                  value={reportForm.status}
-                  onValueChange={(v: string | null) => {
-                    if (v) setReportForm({ ...reportForm, status: v as DeviceStatus });
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.values(DeviceStatus).map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+      {/* Reports Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base font-semibold">Recent Status Reports</CardTitle>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger render={<Button size="sm" />}>
+              <PlusCircle className="mr-1.5 h-4 w-4" />
+              Submit Report
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Submit Status Report</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Status *</Label>
+                  <Select
+                    value={reportForm.status}
+                    onValueChange={(v: string | null) => {
+                      if (v) setReportForm({ ...reportForm, status: v as DeviceStatus });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(DeviceStatus).map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="message">Message</Label>
+                  <Textarea
+                    id="message"
+                    value={reportForm.message}
+                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                      setReportForm({ ...reportForm, message: e.target.value })
+                    }
+                    placeholder="Optional message..."
+                    rows={3}
+                  />
+                </div>
+                <Button onClick={handleSubmitReport} disabled={submitting || !reportForm.status}>
+                  {submitting ? "Submitting..." : "Submit"}
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="message">Message</Label>
-                <Textarea
-                  id="message"
-                  value={reportForm.message}
-                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                    setReportForm({ ...reportForm, message: e.target.value })
-                  }
-                  placeholder="Optional message..."
-                  rows={3}
-                />
-              </div>
-              <Button onClick={handleSubmitReport} disabled={submitting || !reportForm.status}>
-                {submitting ? "Submitting..." : "Submit"}
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent className="p-0">
+          {device.recentReports.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <ClipboardList className="mb-3 h-10 w-10 text-muted-foreground/50" />
+              <h3 className="text-base font-semibold">No status reports yet</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Submit your first report to track this device&apos;s health.
+              </p>
+              <Button
+                className="mt-4"
+                size="sm"
+                variant="outline"
+                onClick={() => setDialogOpen(true)}
+              >
+                <PlusCircle className="mr-1.5 h-4 w-4" />
+                Submit Report
               </Button>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <Separator />
-
-      {device.recentReports.length === 0 ? (
-        <div className="text-center text-muted-foreground py-8">No status reports yet.</div>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Timestamp</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Message</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {device.recentReports.map((report: StatusReportType) => (
-              <TableRow key={report.id}>
-                <TableCell>{formatDate(report.reportedAt)}</TableCell>
-                <TableCell>
-                  <StatusBadge status={report.status} />
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {report.message || "—"}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Message</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {device.recentReports.map((report: StatusReportType) => (
+                  <TableRow key={report.id}>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(report.reportedAt)}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={report.status} />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {report.message || "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

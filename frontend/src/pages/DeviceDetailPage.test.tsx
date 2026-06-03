@@ -12,6 +12,7 @@ vi.mock("react-router-dom", async () => {
     ...actual,
     useParams: () => ({ id: "1" }),
     useNavigate: () => mockedNavigate,
+    Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
   };
 });
 
@@ -28,7 +29,7 @@ describe("DeviceDetailPage", () => {
   it("shows loading state initially", () => {
     vi.mocked(devicesApi.fetchDeviceDetail).mockReturnValue(new Promise(() => {}));
     render(<DeviceDetailPage />);
-    expect(screen.getByText(/loading device/i)).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: /loading device/i })).toBeInTheDocument();
   });
 
   it("renders device information and recent reports", async () => {
@@ -57,7 +58,7 @@ describe("DeviceDetailPage", () => {
     render(<DeviceDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /test cpe/i })).toBeInTheDocument();
+      expect(screen.getByText("CPE-001")).toBeInTheDocument();
     });
 
     expect(screen.getByText("192.168.1.1")).toBeInTheDocument();
@@ -122,10 +123,10 @@ describe("DeviceDetailPage", () => {
     render(<DeviceDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /test cpe/i })).toBeInTheDocument();
+      expect(screen.getByText("CPE-001")).toBeInTheDocument();
     });
 
-    await userEvent.click(screen.getByRole("button", { name: /submit status report/i }));
+    await userEvent.click(screen.getAllByRole("button", { name: /submit report/i })[0]);
 
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toBeInTheDocument();
@@ -147,7 +148,7 @@ describe("DeviceDetailPage", () => {
     });
   });
 
-  it("navigates back on Back button click", async () => {
+  it("shows breadcrumb with link back to devices", async () => {
     const deviceDetail = {
       id: 1,
       uniqueId: "CPE-001",
@@ -165,10 +166,11 @@ describe("DeviceDetailPage", () => {
     render(<DeviceDetailPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /back/i })).toBeInTheDocument();
+      expect(screen.getByText("CPE-001")).toBeInTheDocument();
     });
 
-    await userEvent.click(screen.getByRole("button", { name: /back/i }));
-    expect(mockedNavigate).toHaveBeenCalledWith("/devices");
+    const breadcrumbLink = screen.getByRole("link", { name: /devices/i });
+    expect(breadcrumbLink).toBeInTheDocument();
+    expect(breadcrumbLink).toHaveAttribute("href", "/devices");
   });
 });

@@ -26,7 +26,7 @@ describe("DeviceListPage", () => {
   it("shows loading state initially", () => {
     vi.mocked(devicesApi.fetchDevices).mockReturnValue(new Promise(() => {}));
     render(<DeviceListPage />);
-    expect(screen.getByText(/loading devices/i)).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: /loading devices/i })).toBeInTheDocument();
   });
 
   it("renders empty state when no devices", async () => {
@@ -107,10 +107,10 @@ describe("DeviceListPage", () => {
     render(<DeviceListPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /register device/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /register/i })).toBeInTheDocument();
     });
 
-    await userEvent.click(screen.getByRole("button", { name: /register device/i }));
+    await userEvent.click(screen.getByRole("button", { name: /register/i }));
     expect(mockedNavigate).toHaveBeenCalledWith("/devices/register");
   });
 });

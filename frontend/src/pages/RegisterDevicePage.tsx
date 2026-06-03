@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ChangeEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { PlusCircle } from "lucide-react";
 import { registerDevice } from "@/api/devices";
 import { DeviceType } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -56,85 +57,108 @@ export default function RegisterDevicePage() {
   };
 
   return (
-    <div className="mx-auto max-w-xl p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Register New Device</h1>
+    <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link to="/devices" className="hover:text-foreground transition-colors">
+          Devices
+        </Link>
+        <span>/</span>
+        <span className="font-medium text-foreground">Register New Device</span>
+      </nav>
+
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Register New Device</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Add a new network device to the monitoring system.
+        </p>
+      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Device Information</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base font-semibold">
+            <PlusCircle className="h-5 w-5 text-primary" />
+            Device Information
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="uniqueId">Unique ID *</Label>
-              <Input
-                id="uniqueId"
-                value={form.uniqueId}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, uniqueId: e.target.value })}
-                placeholder="e.g. CPE-001"
-              />
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="uniqueId">Unique ID *</Label>
+                <Input
+                  id="uniqueId"
+                  value={form.uniqueId}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, uniqueId: e.target.value })}
+                  placeholder="e.g. CPE-001"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input
+                  id="name"
+                  value={form.name}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })}
+                  placeholder="e.g. Customer Premises Equipment 1"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="deviceType">Device Type *</Label>
+                <Select
+                  value={form.deviceType}
+                  onValueChange={(v: string | null) => { if (v) setForm({ ...form, deviceType: v as DeviceType }) }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {deviceTypes.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hostname">Hostname *</Label>
+                <Input
+                  id="hostname"
+                  value={form.hostname}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, hostname: e.target.value })}
+                  placeholder="e.g. cpe-001.network.local"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ipAddress">IP Address</Label>
+                <Input
+                  id="ipAddress"
+                  value={form.ipAddress}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, ipAddress: e.target.value })}
+                  placeholder="e.g. 192.168.1.1 (optional)"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location">Location *</Label>
+                <Input
+                  id="location"
+                  value={form.location}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, location: e.target.value })}
+                  placeholder="e.g. Building A, Floor 3"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                value={form.name}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Customer Premises Equipment 1"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="deviceType">Device Type *</Label>
-              <Select
-                value={form.deviceType}
-                onValueChange={(v: string | null) => { if (v) setForm({ ...form, deviceType: v as DeviceType }) }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {deviceTypes.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="hostname">Hostname *</Label>
-              <Input
-                id="hostname"
-                value={form.hostname}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, hostname: e.target.value })}
-                placeholder="e.g. cpe-001.network.local"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="ipAddress">IP Address</Label>
-              <Input
-                id="ipAddress"
-                value={form.ipAddress}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, ipAddress: e.target.value })}
-                placeholder="e.g. 192.168.1.1 (optional)"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">Location *</Label>
-              <Input
-                id="location"
-                value={form.location}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, location: e.target.value })}
-                placeholder="e.g. Building A, Floor 3"
-              />
-            </div>
-
-            {error && <div className="text-sm text-destructive">{error}</div>}
+            {error && (
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
 
             <div className="flex gap-3 pt-2">
               <Button type="submit" disabled={loading}>
