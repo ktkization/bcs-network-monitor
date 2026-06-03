@@ -1,0 +1,45 @@
+### Build Tools ###
+# Maven build directory
+target/
+*.pom.properties
+*.pom
+
+# Gradle build directory
+build/
+.gradle/
+
+### Spring Boot Specifics ###
+.sts4-cache/
+.springBeans/
+*.log
+/out/
+
+### Local Configuration & Secrets ###
+.env
+.env.local
+*.properties.local
+*.yml.local
+*.yaml.local
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+### Eclipse ###
+.metadata/
+.classpath
+.project
+.settings/
+*.launch
+
+### Visual Studio Code ###
+.vscode/
+
+### Operating System Files ###
+# macOS
+.DS_Store
+# Windows
+Thumbs.db
