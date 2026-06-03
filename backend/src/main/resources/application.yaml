@@ -23,7 +23,7 @@ server:
   port: 8080
 
 app:
-  stale-threshold: 1m
+  stale-threshold: 15m
 
 logging:
   level:
